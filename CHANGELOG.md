@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.4.1
+
+- Preserve independent notes when adding or editing chord cards; check capacity after replacement.
+- Apply completed arrangement edits to live playback at its current position, including non-looping playback.
+- Fix drawing into the clicked snap cell and honor Alt-click for unsnapped placement.
+- Restore selection, paste cursor and play position when cancelling clip-boundary drags; allow edge scrolling on the next drag.
+- Keep the custom sound description consistent when changing the primary waveform.
+- Add focused regressions for these review findings.
+
 ## 1.4.0
 
 - Add horizontal/vertical zoom, pointer-anchored wheel zoom, fit clip/selection, and zoom shortcuts.

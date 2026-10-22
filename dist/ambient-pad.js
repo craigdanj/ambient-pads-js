@@ -1,4 +1,4 @@
-/* Ambient Pad JS 1.4.0 | MIT | Craig Johnson */
+/* Ambient Pad JS 1.4.1 | MIT | Craig Johnson */
 (function (g) {
 'use strict';
 const waves=['sine','triangle','sawtooth','square'];
