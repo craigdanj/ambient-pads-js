@@ -1,0 +1,10 @@
+const assert=require('node:assert/strict');require('../dist/navigation.js');const N=globalThis.PadNavigation;
+assert.deepEqual(N.loopRange(undefined,undefined,32),{start:0,end:32});assert.deepEqual(N.loopRange(99,2,16),{start:15.75,end:16});assert.equal(N.parseBeat('3:2.5'),9.5);assert.equal(N.formatBeat(3.999),'2:1');assert.equal(N.normalizeView(null).rowH,18);assert.equal(N.normalizeView({beatWidth:0}).beatWidth,0);assert.equal(N.formatBeat(9.5),'3:2.5');assert.equal(N.parseBeat('0:1'),null);assert.equal(N.parseBeat('1:5'),null);assert.equal(N.parseBeat('word'),null);assert.equal(N.parseBeat('129:1'),512);
+const moved=N.anchorScroll(200,100,60,20,50);assert.equal((200+100-60)/20,(moved+100-60)/50);assert.equal(N.normalizeView({beatWidth:999,rowH:-1,scrollLeft:-5}).beatWidth,160);assert.equal(N.normalizeView({rowH:-1}).rowH,6);
+assert.equal(N.position(1,6,4,8,true),7);assert.equal(N.position(2,6,4,8,true),4);assert.equal(N.position(5,6,4,8,true),7);assert.equal(N.position(50,6,4,8,false),8);
+const notes=[{id:'held',start:0,length:10,midi:60,velocity:.8},{id:'later',start:6,length:1,midi:64,velocity:.6},{id:'outside',start:10,length:1,midi:67,velocity:.8}];
+let e=N.segment(notes,5,8,16).filter(e=>e.type==='note');assert.equal(e.length,2);assert.equal(e[0].id,'held');assert.equal(e[0].beat,0);assert.equal(e[0].length,3);assert.equal(e[1].beat,1);assert.equal(e[1].length,1);
+e=N.segment(notes,4,8,16).filter(e=>e.type==='note');assert.equal(e[0].length,4);assert(!e.some(n=>n.id==='outside'));
+e=N.segment([{start:12,length:6,midi:60}],12,16,16).find(e=>e.type==='note');assert.equal(e.length,6);assert.equal(N.segment([],3.5,4,16).length,0);assert.equal(N.segment([],4,8,16).length,4);assert(N.segment([],4,8,16)[0].accent);
+for(const bars of [1,3,12,64,128]){const r=N.loopRange(0,bars*4,bars*4);assert.equal(r.end,bars*4)}
+console.log('PASS: loop bounds and bar:beat parsing, pointer zoom anchor, seek position and loop wrapping, held-note catch-up, subloop gate trimming, full-clip overlap tail and metronome alignment.');

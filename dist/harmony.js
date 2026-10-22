@@ -1,0 +1,21 @@
+/* Ambient Pad JS harmony helpers | MIT */
+(function(g){
+'use strict';
+const intervals={maj:[0,4,7],min:[0,3,7],maj7:[0,4,7,11],m7:[0,3,7,10],'9':[0,3,7,10,14],sus2:[0,2,7],'7':[0,4,7,10],dim:[0,3,6],m7b5:[0,3,6,10],dim7:[0,3,6,9],aug:[0,4,8],mMaj7:[0,3,7,11],augMaj7:[0,4,8,11]};
+const suffix={maj:'',min:'m',maj7:'maj7',m7:'m7','9':'m9',sus2:'sus2','7':'7',dim:'dim',m7b5:'m7♭5',dim7:'dim7',aug:'aug',mMaj7:'m(maj7)',augMaj7:'aug(maj7)'};
+const scales={major:{name:'Major',steps:[0,2,4,5,7,9,11]},minor:{name:'Natural minor',steps:[0,2,3,5,7,8,10]},dorian:{name:'Dorian',steps:[0,2,3,5,7,9,10]},mixolydian:{name:'Mixolydian',steps:[0,2,4,5,7,9,10]},lydian:{name:'Lydian',steps:[0,2,4,6,7,9,11]},harmonicMinor:{name:'Harmonic minor',steps:[0,2,3,5,7,8,11]}};
+const keys=['C','D♭','D','E♭','E','F','F♯','G','A♭','A','B♭','B'],letters=['C','D','E','F','G','A','B'],natural=[0,2,4,5,7,9,11];
+const pc=n=>((n%12)+12)%12;
+function scaleNotes(key,mode){const steps=scales[mode]?.steps||scales.major.steps,start=letters.indexOf(keys[key]?.[0]||'C');return steps.map((s,i)=>{const li=(start+i)%7,pitch=pc(key+s);let alter=pc(pitch-natural[li]);if(alter>6)alter-=12;return {pc:pitch,name:letters[li]+(alter<0?'♭'.repeat(-alter):'♯'.repeat(alter))}})}
+function compatible(ch,key,mode){const allowed=new Set(scaleNotes(key,mode).map(n=>n.pc));return intervals[ch.quality].every(i=>allowed.has(pc(ch.root+i)))}
+function diatonic(key,mode){const steps=scales[mode].steps;return steps.map((step,i)=>{const quality=count=>{const offsets=Array.from({length:count},(_,j)=>{const d=i+j*2;return steps[d%7]+12*Math.floor(d/7)-step});return Object.keys(intervals).find(k=>JSON.stringify(intervals[k])===JSON.stringify(offsets))};const triad=quality(3),seventh=quality(4),roman=['I','II','III','IV','V','VI','VII'][i],lower=triad==='min'||triad==='dim';return {root:pc(key+step),triad,seventh,roman:(lower?roman.toLowerCase():roman)+(triad==='dim'?'°':triad==='aug'?'+':'')}})}
+function pitchClasses(ch){return [...new Set(intervals[ch.quality].map(i=>pc(ch.root+i)))].sort((a,b)=>a-b)}
+function validVoicing(ch,notes){return Array.isArray(notes)&&notes.length===intervals[ch.quality].length&&notes.every((n,i)=>Number.isInteger(n)&&n>=36&&n<=84&&(i===0||n>notes[i-1]))&&JSON.stringify([...new Set(notes.map(pc))].sort((a,b)=>a-b))===JSON.stringify(pitchClasses(ch))}
+function rootVoicing(ch){let notes=intervals[ch.quality].map(i=>48+ch.root+i);for(let i=0;i<(ch.inversion||0);i++)notes[i]+=12;return notes.sort((a,b)=>a-b)}
+function candidates(ch){const pcs=pitchClasses(ch),out=[];function visit(i,a){if(i===pcs.length){a.sort((x,y)=>x-y);if(a.at(-1)-a[0]<=19)out.push(a);return}for(let n=48;n<=76;n++)if(pc(n)===pcs[i])visit(i+1,[...a,n])}visit(0,[]);return out.length?out:[rootVoicing(ch)]}
+// Ordered voice matching also supports changing from triads to sevenths/ninths.
+function movement(a,b){const dp=Array.from({length:a.length+1},()=>Array(b.length+1).fill(Infinity));dp[0][0]=0;for(let i=0;i<=a.length;i++)for(let j=0;j<=b.length;j++){if(i<a.length&&j<b.length)dp[i+1][j+1]=Math.min(dp[i+1][j+1],dp[i][j]+Math.abs(a[i]-b[j]));if(i<a.length)dp[i+1][j]=Math.min(dp[i+1][j],dp[i][j]+6);if(j<b.length)dp[i][j+1]=Math.min(dp[i][j+1],dp[i][j]+6)}return dp[a.length][b.length]+.25*Math.abs(a[0]-b[0])}
+// Anchor the first chord; choose a least-cost path for the following voicings.
+function voiceLead(chords,loop=true){if(!chords.length)return[];const first=validVoicing(chords[0],chords[0].voicing)?[...chords[0].voicing]:rootVoicing(chords[0]),sets=[[first],...chords.slice(1).map(candidates)];let costs=[0],parents=[[-1]];for(let i=1;i<sets.length;i++){const next=sets[i].map(()=>Infinity),parent=[];for(let j=0;j<sets[i].length;j++){for(let k=0;k<sets[i-1].length;k++){const score=costs[k]+movement(sets[i-1][k],sets[i][j]);if(score<next[j]){next[j]=score;parent[j]=k}}}costs=next;parents.push(parent)}let best=0,value=Infinity;for(let j=0;j<costs.length;j++){const score=costs[j]+(loop?movement(sets.at(-1)[j],first):0);if(score<value){best=j;value=score}}const result=[];for(let i=sets.length-1;i>=0;i--){result[i]=sets[i][best];best=parents[i][best]}return result}
+g.PadHarmony={intervals,suffix,scales,keys,scaleNotes,diatonic,compatible,rootVoicing,validVoicing,voiceLead,movement};
+})(globalThis);

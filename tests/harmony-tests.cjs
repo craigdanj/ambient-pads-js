@@ -1,0 +1,11 @@
+const assert=require('node:assert/strict');require('../dist/harmony.js');const H=globalThis.PadHarmony;
+assert.deepEqual(H.diatonic(0,'major').map(x=>[x.root,x.triad,x.seventh]),[[0,'maj','maj7'],[2,'min','m7'],[4,'min','m7'],[5,'maj','maj7'],[7,'maj','7'],[9,'min','m7'],[11,'dim','m7b5']]);
+assert.equal(H.diatonic(9,'harmonicMinor')[0].seventh,'mMaj7');assert.equal(H.diatonic(9,'harmonicMinor')[6].seventh,'dim7');
+assert.deepEqual(H.scaleNotes(10,'major').map(n=>n.name),['B♭','C','D','E♭','F','G','A']);assert.deepEqual(H.scaleNotes(6,'major').map(n=>n.name),['F♯','G♯','A♯','B','C♯','D♯','E♯']);
+assert(H.compatible({root:7,quality:'7'},0,'major'));assert(!H.compatible({root:2,quality:'maj'},0,'major'));
+for(let key=0;key<12;key++)for(const mode in H.scales){for(const d of H.diatonic(key,mode)){assert(d.triad&&d.seventh,'Every degree has supported qualities');assert(H.compatible({root:d.root,quality:d.seventh},key,mode))}}
+const progression=[[0,'maj7'],[9,'m7'],[5,'maj7'],[7,'maj']].map(([root,quality])=>({root,quality,inversion:0}));const optimized=H.voiceLead(progression,true),original=progression.map(H.rootVoicing);const cost=a=>a.reduce((sum,ch,i)=>sum+H.movement(ch,a[(i+1)%a.length]),0);assert(cost(optimized)<cost(original));assert.deepEqual(optimized[0],original[0]);optimized.forEach((v,i)=>assert(H.validVoicing(progression[i],v)));
+assert.deepEqual(H.voiceLead([],true),[]);assert.deepEqual(H.voiceLead([progression[0]],true),[original[0]]);assert(!H.validVoicing(progression[0],[48,52,55,58]));
+for(let key=0;key<12;key++)for(const mode of ['major','minor','harmonicMinor']){const ds=H.diatonic(key,mode),cs=[ds[0],ds[5],ds[3],ds[4]].map(d=>({root:d.root,quality:d.seventh}));H.voiceLead(cs,true).forEach((v,i)=>assert(H.validVoicing(cs[i],v)))}
+const mixed=[{root:9,quality:'9'},{root:5,quality:'maj7'},{root:0,quality:'maj'},{root:7,quality:'7'}];H.voiceLead(mixed).forEach((v,i)=>assert(H.validVoicing(mixed[i],v)));
+const long=Array.from({length:64},(_,i)=>progression[i%4]);const time=performance.now();assert.equal(H.voiceLead(long).length,64);console.log('PASS: diatonic triads/sevenths in 72 key/scale pairs, enharmonic spelling, borrowed chords, voice-leading pitch-class preservation, lower loop movement, mixed voice counts and 64-chord arrangement ('+Math.round(performance.now()-time)+'ms).');
